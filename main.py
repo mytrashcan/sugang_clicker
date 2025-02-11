@@ -29,19 +29,16 @@ def setup_driver():
 def login(driver, user_id, user_pw):
     # ID 입력
     WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "id"))
-    ).send_keys(user_id)
+        EC.presence_of_element_located((By.ID, "id"))).send_keys(user_id) # ID 바뀔가능성 있음 -> CSS SELECTOR 로 바꿀까 생각중
     # 비밀번호 입력
     WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "passwd"))
-    ).send_keys(user_pw)
+        EC.presence_of_element_located((By.ID, "passwd"))).send_keys(user_pw)
     # 로그인 버튼 클릭
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.ID, "btn_login"))
-    ).click()
+        EC.element_to_be_clickable((By.ID, "btn_login"))).click()
 
 def sugang_click():
-
+    #Work In Process
     return 0
 
 
