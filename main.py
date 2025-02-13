@@ -54,7 +54,7 @@ def sugang_click(driver, priorities=None):
 
         print(f"총 {len(apply_buttons)}개의 수강신청 버튼을 찾았습니다.")
 
-        # 우선순위가 지정된 경우 해당 순서대로 처리
+        # priorities 에서 지정한 순서대로 처리
         if priorities:
             button_indices = priorities
         else:
