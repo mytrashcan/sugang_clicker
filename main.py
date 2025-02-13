@@ -43,7 +43,7 @@ def login(driver, user_id, user_pw):
         EC.element_to_be_clickable((By.ID, "btn_login"))).click()
 
 
-def sugang_click(driver):
+def sugang_click(driver, priorities=None):
     try:
         driver.switch_to.frame("Main")
         driver.switch_to.frame("pkg")
@@ -54,7 +54,13 @@ def sugang_click(driver):
 
         print(f"총 {len(apply_buttons)}개의 수강신청 버튼을 찾았습니다.")
 
-        for i, button in enumerate(apply_buttons, 1):
+        # 우선순위가 지정된 경우 해당 순서대로 처리
+        if priorities:
+            button_indices = priorities
+        else:
+            button_indices = range(1, len(apply_buttons) + 1)
+
+        for i in button_indices:
             try:
                 #time.sleep(random.uniform(0.5, 1.0))
 
@@ -121,9 +127,10 @@ if __name__ == "__main__":
         # 2. 로그인
         login(driver, user_id, user_pw)
 
-        # 3. 과목 클릭
-        sugang_click(driver)
-        
+        # 수강신청
+        priorities = [3, 2, 4, 6, 1, 5]  # 3번 과목 먼저, 그 다음 2번, 4번, 6번 순서로 정렬은 숫자, 영어, 한글 순
+        sugang_click(driver, priorities)
+
         # 3. 프로그램 종료 대기
         input("Press Enter to exit and close the browser...")
     finally:
