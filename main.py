@@ -42,6 +42,7 @@ def login(driver, user_id, user_pw):
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.ID, "btn_login"))).click()
 
+
 def sugang_click(driver):
     try:
         driver.switch_to.frame("Main")
@@ -109,6 +110,7 @@ def sugang_click(driver):
             driver.switch_to.default_content()
         except:
             pass
+
 
 # MAIN: 스크립트 실행
 if __name__ == "__main__":
