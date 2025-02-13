@@ -2,8 +2,8 @@ class Config:
     """전역 설정값들을 관리하는 클래스"""
     DEFAULT_TIMEOUT = 10
     ALERT_TIMEOUT = 5
-    DEFAULT_INTERVAL = 0.01
-    PRIORITIES = [3, 2, 4, 6, 1, 5]
+    DEFAULT_INTERVAL = 0.01 # 서버 시간 갱신 주기
+    PRIORITIES = [3, 2, 4, 6, 1, 5] # 수강 신청 우선순위 설정 숫자-영어-한글
 
     SELECTORS = {
         'login_id': 'id',
