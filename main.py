@@ -1,47 +1,21 @@
-import os
 import time
-import random
+import os
+from datetime import datetime
 from dotenv import load_dotenv
 from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.alert import Alert
-from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
 
 # .env 파일에서 사용자 정보 및 URL 로드
 load_dotenv()
 user_id = os.getenv("user_id")
 user_pw = os.getenv("user_pw")
-url = os.getenv("url")
-
-
-# STEP 1: 환경 설정
-def setup_driver():
-    from selenium.webdriver.chrome.options import Options
-    options = Options()
-    # 필요 시 headless 모드 비활성화
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get(url)  # .env 파일의 URL 로드
-    return driver
-
-
-# STEP 2: 로그인 처리
-def login(driver, user_id, user_pw):
-    # ID 입력
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "id"))).send_keys(user_id) # ID 바뀔가능성 있음 -> CSS SELECTOR 로 바꿀까 생각중
-    # 비밀번호 입력
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "passwd"))).send_keys(user_pw)
-    # 로그인 버튼 클릭
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.ID, "btn_login"))).click()
-
+sugang_url = os.getenv("url")
+time_url = os.getenv("time_url")
 
 def sugang_click(driver, priorities=None):
     try:
@@ -102,9 +76,7 @@ def sugang_click(driver, priorities=None):
             except Exception as e:
                 print(f"{i}번째 과목 수강신청 중 오류 발생: {str(e)}")
                 continue
-
         return 0
-
     except TimeoutException:
         print("프레임 또는 버튼을 찾을 수 없습니다 (시간 초과)")
         return 1
@@ -118,20 +90,109 @@ def sugang_click(driver, priorities=None):
             pass
 
 
-# MAIN: 스크립트 실행
-if __name__ == "__main__":
+def convert_korean_time_to_hms(time_str):
+    """한글 시간 문자열을 HH:MM:SS 형식으로 변환"""
     try:
-        # 1. 웹 드라이버 설정
-        driver = setup_driver()
+        # 기본값 설정
+        hours = minutes = seconds = '00'
 
-        # 2. 로그인
-        login(driver, user_id, user_pw)
+        # 시간 문자열에서 각 부분 추출
+        for part in time_str.split():
+            if '시' in part:
+                hours = part.replace('시', '').strip().zfill(2)
+            elif '분' in part:
+                minutes = part.replace('분', '').strip().zfill(2)
+            elif '초' in part:
+                seconds = part.replace('초', '').strip().zfill(2)
 
-        # 수강신청
-        priorities = [3, 2, 4, 6, 1, 5]  # 3번 과목 먼저, 그 다음 2번, 4번, 6번 순서로 정렬은 숫자, 영어, 한글 순
-        sugang_click(driver, priorities)
+        formatted_time = f"{hours}:{minutes}:{seconds}"
+        return formatted_time
+    except Exception as e:
+        print(f"시간 변환 중 오류: {e}")
+        print(f"입력된 시간 문자열: {time_str}")
+        return None
 
-        # 3. 프로그램 종료 대기
-        input("Press Enter to exit and close the browser...")
+
+def get_time_and_execute(time_url, sugang_url, target_time, interval=0.01):
+    """특정 시간이 되면 로그인 및 수강신청을 실행하는 함수"""
+    # 시간 확인용 브라우저 설정
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    service = Service(ChromeDriverManager().install())
+    time_driver = webdriver.Chrome(service=service, options=options)
+    time_driver.get(time_url)
+
+    # 수강신청용 브라우저 설정 및 사전 준비
+    sugang_options = webdriver.ChromeOptions()
+    sugang_service = Service(ChromeDriverManager().install())
+    sugang_driver = webdriver.Chrome(service=sugang_service, options=sugang_options)
+    sugang_driver.get(sugang_url)
+
+    # ID/PW 미리 입력
+    print("로그인 정보 미리 입력 중...")
+    id_field = WebDriverWait(sugang_driver, 10).until(
+        EC.presence_of_element_located((By.ID, "id")))
+    pw_field = WebDriverWait(sugang_driver, 10).until(
+        EC.presence_of_element_located((By.ID, "passwd")))
+    login_btn = WebDriverWait(sugang_driver, 10).until(
+        EC.presence_of_element_located((By.ID, "btn_login")))
+
+    id_field.send_keys(user_id)
+    pw_field.send_keys(user_pw)
+    print("로그인 정보 입력 완료, 대기 중...")
+
+    executed = False
+
+    try:
+        while not executed:
+            time_element = time_driver.find_element(By.ID, "time_area")
+            current_time_full = time_element.text.strip()
+
+            time_parts = current_time_full.split()
+            if len(time_parts) >= 4:
+                time_part = ' '.join(time_parts[3:])
+                current_time_hms = convert_korean_time_to_hms(time_part)
+
+                if current_time_hms:
+                    current_datetime = datetime.strptime(current_time_hms, "%H:%M:%S")
+                    target_datetime = datetime.strptime(target_time, "%H:%M:%S")
+
+                    print(f"\r현재 시간: {current_time_hms} | 목표 시간: {target_time}", end="")
+
+                    if current_datetime >= target_datetime:
+                        print("\n목표 시간 도달! 로그인 버튼 클릭...")
+                        time_driver.quit()
+
+                        try:
+                            # 로그인 버튼 클릭 시각 기록
+                            print("로그인 버튼 클릭 시도...")
+                            click_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                            print(f"버튼 클릭 시각: {click_time}")
+                            login_btn.click()
+
+                            priorities = [3, 2, 4, 6, 1, 5] # 수강 우선순위 지정 정렬: 숫자, 영어, 한글
+                            sugang_click(sugang_driver, priorities)
+                        except Exception as e:
+                            print("수강신청 과정 중 오류 발생:", e)
+
+                        executed = True
+                        break
+
+            time.sleep(interval)
+
+
+    except Exception as e:
+        print("\n오류 발생:", e)
+
     finally:
-        driver.quit()
+        if 'time_driver' in locals() and time_driver:
+            time_driver.quit()
+        print("프로그램을 종료하려면 Enter를 눌러주세요...")
+        input()
+        if 'sugang_driver' in locals() and sugang_driver:
+            sugang_driver.quit()
+
+
+if __name__ == "__main__":
+    target_time = "10:00:00"  # 원하는 목표 시간 설정 정각 -1초 또는 -2초 추천
+    get_time_and_execute(time_url, sugang_url, target_time, interval=0.05)
