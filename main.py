@@ -1,5 +1,4 @@
-from application import SugangApplication
-
+from Module import SugangApplication
 
 def main():
     try:
