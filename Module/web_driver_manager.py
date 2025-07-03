@@ -1,19 +1,22 @@
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-
 
 class WebDriverManager:
-    """웹드라이버 생성 및 관리를 담당하는 클래스"""
-
     @staticmethod
     def create_driver(url, headless=False):
-        """웹드라이버 생성 및 초기화"""
         options = webdriver.ChromeOptions()
         if headless:
             options.add_argument("--headless")
 
-        service = Service(ChromeDriverManager().install())
+        # 현재 파일 기준으로 chromedriver.exe 경로 설정
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        driver_path = os.path.join(base_dir, "chromedriver.exe")
+
+        if not os.path.exists(driver_path):
+            raise FileNotFoundError(f"❌ 드라이버가 존재하지 않습니다: {driver_path}")
+
+        service = Service(driver_path)
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(url)
         return driver
